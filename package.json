@@ -1,0 +1,49 @@
+{
+  "//1": "describes your app and its dependencies",
+  "//2": "https://docs.npmjs.com/files/package.json",
+  "//3": "updating this file will download and update your packages",
+  "name": "dinleveeglen",
+  "version": "0.0.1",
+  "description": "A simple Node app built on Express, instantly up and running.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "common-tags": "^1.8.0",
+    "dateformat": "^3.0.3",
+    "dblapi.js": "^2.2.0",
+    "discord.js": "^11.6.4",
+    "encrypt_decrypt": "^1.0.0",
+    "express": "^4.16.3",
+    "ffmpeg": "^0.0.4",
+    "ffmpeg-binaries": "^4.0.0",
+    "gitinfo": "^2.2.0",
+    "jimp": "^0.5.3",
+    "moment": "^2.22.2",
+    "moment-duration-format": "^2.2.2",
+    "node-opus": "^0.3.0",
+    "opusscript": "^0.0.6",
+    "quick.db": "^7.0.0-b15",
+    "request": "^2.88.0",
+    "simple-youtube-api": "^5.0.2",
+    "snekfetch": "^4.0.4",
+    "steam-provider": "^0.3.2",
+    "superagent": "^4.0.0-beta.5",
+    "useful-tools": "^0.0.20",
+    "ytdl-core": "^0.26.1"
+  },
+  "engines": {
+    "node": "8.x"
+  },
+  "repository": {
+    "url": "https://glitch.com/edit/#!/dinleveeglen"
+  },
+  "license": "MIT",
+  "keywords": [
+    "node",
+    "glitch",
+    "express"
+  ]
+}
