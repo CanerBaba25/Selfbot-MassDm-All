@@ -1,66 +1,93 @@
 # Discord Server Announcements
 
-A Discord bot for administrator-triggered DM announcements to members of the server where the command is run. Uses Discord.js 14 and Node.js 22.12.0 or newer.
+Administrator commands for DM announcements in the server where each command is run. Uses Discord.js 14 and Node.js 22.12.0 or newer.
 
 ## Setup
 
-1. Install dependencies from the lockfile:
+1. Install dependencies:
 
    ```sh
    npm ci
    ```
 
-2. Create a bot in the [Discord Developer Portal](https://discord.com/developers/applications). On its **Bot** settings page, enable **Server Members Intent** and **Message Content Intent**. The former allows member fetching; the latter allows prefix commands. Verified applications may need approval for these [privileged intents](https://docs.discord.com/developers/events/gateway#privileged-intents).
-
-3. Invite the bot to your server with **View Channels** and **Send Messages** permissions for the command channel.
-
-4. Copy `.env.example` to `.env`. In PowerShell:
+2. Create an application bot in the [Discord Developer Portal](https://discord.com/developers/applications). Enable **Server Members Intent** and **Message Content Intent** on its **Bot** page. These allow fetching members and reading prefix commands; verified applications may need approval for [privileged intents](https://docs.discord.com/developers/events/gateway#privileged-intents).
+3. Invite the bot with **View Channels** and **Send Messages** permissions in the command channel.
+4. Copy `.env.example` to `.env` and set `DISCORD_TOKEN` to your application bot token. In PowerShell:
 
    ```powershell
    Copy-Item -LiteralPath .env.example -Destination .env
    ```
 
-   Set `DISCORD_TOKEN` to your application bot token. Environment variables already set by your hosting provider take precedence over `.env`. Keep the token private; `.env` files are excluded from Git.
+5. Run `npm start`. Keep `.env` private. Existing environment variables take precedence over the file.
 
-5. Start the bot:
+## Commands
 
-   ```sh
-   npm start
-   ```
+All commands require **Administrator** permission and must be used inside a server. The default prefix is `!`; change it with `COMMAND_PREFIX`.
 
-## Usage
+| Command | Action |
+| --- | --- |
+| `!dm @user [message]` | DM one non-bot member of this server. |
+| `!dmpreview [message]` | Send the announcement to your own DMs first. |
+| `!dmall [message]` | DM every non-bot member of this server, including you. `!massdm` is an alias. |
+| `!dmallsafe [message]` | Send to all members using the slower schedule below. |
+| `!dmroleall @Role [message]` | DM non-bot server members who have the role. |
+| `!dmroleallsafe @Role [message]` | Send to the role using the slower schedule. |
+| `!dmretry <success_log_file>` | Retry failed recipients from the referenced campaign. |
+| `!dmstatus` | Show the active campaign or latest recorded status and counts. |
+| `!dmstats [days]` | Show successful/failed delivery attempts over 1-365 days; default 7. |
+| `!dmcancel` | Request cancellation of the current server's campaign. |
+| `!dmestimate <recipient_count> [safe]` | Estimate waiting time for 1-100000 recipients; add `safe` for slower pacing. |
+| `!dmhelp` | Show the command list. |
 
-A member with **Administrator** permission can run:
+User and role commands also accept a raw Discord ID. Omit `[message]` to use `DEFAULT_MESSAGE`; otherwise provide 1-4096 characters. Internal whitespace and line breaks are preserved. Each DM identifies the server and administrator who started it.
 
 ```text
-!massdm Your announcement goes here
+!dmpreview The event starts at 19:00.
+!dmroleall @EventParticipants The event starts at 19:00.
+!dmstatus
 ```
 
-Each command sends the announcement once to non-bot members of the current server, including the sender. Members are fetched before delivery, so the recipient list is not limited to cached users. The DM identifies the server and command sender. Internal whitespace and line breaks are preserved. Announcement text must contain 1-4096 characters.
+Members are fetched before delivery. Only one delivery campaign runs at a time per server. Closed DMs count as failures; the bot continues to other recipients and posts progress, cooldowns, and final sent/failed/remaining counts.
 
-Delivery is sequential, with a configurable pause between attempts. Closed DMs count as failures and do not stop other recipients. The channel status is updated after delivery with actual sent, failed, and remaining counts. Only one announcement can run at a time in each server. Command messages stay visible for attribution.
+## Delivery schedule
+
+Normal broadcasts and retries wait **1 second between attempts**, plus an extra **5 minutes after each 20 attempts before the next recipient**. Failed attempts count toward the 20. `DM_DELAY_MS` changes the normal delay; the 5-minute break stays fixed.
+
+The `safe` commands wait **4 seconds between attempts**, with these additional breaks:
+
+| Completed attempts | Extra break before the next attempt |
+| --- | --- |
+| Every 100 | 8 minutes |
+| Every 40 | 4 minutes |
+| Every 15 | 90 seconds |
+
+When milestones overlap, apply only the first matching rule in the order **100, 40, 15**. Failed attempts count. Neither schedule adds a delay or cooldown after the final recipient. Single-user DMs and previews need no broadcast cooldown.
+
+Discord.js handles API rate-limit waits in addition to this schedule. Slower pacing does not guarantee that Discord will allow every DM. Estimates are lower bounds for configured waits; member fetching, message delivery, log writes, and API waits add time.
+
+## Logs, retries, and stopping
+
+Campaigns write metadata and success/failed `.jsonl` files to `logs/`. The completion message and `!dmstatus` show a filename such as `dm_success_<campaign UUID>.jsonl`. Pass that basename to `!dmretry`, without a directory path.
+
+Retry uses the original message and only recipients recorded as failed in that campaign who are still eligible members of this server. It skips anyone already reached successfully anywhere in the same retry chain. Recipients that were never attempted are not included. Re-running `!dmall` starts a separate campaign and can send another copy.
+
+`!dmcancel`, Ctrl+C, or SIGTERM stop further attempts; an in-flight request may finish. Campaigns do not resume automatically after a restart. Use `!dmstatus` to review interrupted runs before starting another campaign.
+
+Logs contain plaintext announcement text and recipient IDs. Keep them private. Source ZIPs exclude `logs/`, `.env`, dependencies, tests, and generated caches.
 
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DISCORD_TOKEN` | Required | Discord application bot token |
-| `COMMAND_PREFIX` | `!` | 1-10 characters without whitespace |
-| `DM_DELAY_MS` | `7000` | Pause between delivery attempts; 1000-60000 milliseconds |
-| `PORT` | `3000` | HTTP health server port; 1-65535 |
-| `HOST` | `0.0.0.0` | HTTP bind address |
+| `DISCORD_TOKEN` | Required | Discord application bot token. |
+| `COMMAND_PREFIX` | `!` | 1-10 characters without whitespace. |
+| `DM_DELAY_MS` | `1000` | Normal delay between attempts, 1000-60000 milliseconds. Slower commands use their fixed schedule. |
+| `DEFAULT_MESSAGE` | Empty | Used when a message argument is omitted. Leave empty to require a message. |
+| `PORT` | `3000` | HTTP health server port, 1-65535. |
+| `HOST` | `0.0.0.0` | HTTP bind address. |
 
-Discord.js handles API rate limits; the configured pause is additional spacing between attempts. A failed credential stops the current broadcast. Errors are logged with context and error codes, without request bodies or announcement text.
+`GET /health` and `GET /` return HTTP 200 when Discord is ready and 503 otherwise. Other paths return 404. Invalid bot credentials stop the current campaign.
 
-`GET /health` and `GET /` return JSON with HTTP 200 when Discord is ready and HTTP 503 otherwise. Other paths return HTTP 404.
+## Development verification
 
-Ctrl+C or SIGTERM closes the health server, stops further delivery attempts, and disconnects the bot. An already in-flight request may finish. Jobs are kept in memory and are not resumed after a restart; review the last counts before repeating an interrupted announcement.
-
-## Project layout
-
-- `server.js`: client startup, health server, and shutdown.
-- `events/message.js`: the single command dispatcher.
-- `komutlar/yaz.js`: the `massdm` command.
-- `util/broadcast.js`: paced delivery and results.
-- `util/config.js`: environment validation.
-- `util/commandLoader.js` and `util/eventLoader.js`: loading and event registration.
+Run `npm test` from the full development checkout. The minimal source ZIP excludes the test files.

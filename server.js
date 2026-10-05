@@ -7,6 +7,7 @@ const { loadConfig } = require('./util/config');
 const loadCommands = require('./util/commandLoader');
 const loadEvents = require('./util/eventLoader');
 const logError = require('./util/logError');
+const { createCampaignService } = require('./util/campaignService');
 
 function createClient(config) {
   const client = new Client({
@@ -20,9 +21,12 @@ function createClient(config) {
     rest: { timeout: 15_000, retries: 3 },
   });
   // Keep the login token out of command configuration and logs.
-  client.config = Object.freeze({ prefix: config.prefix, delayMs: config.delayMs });
+  client.config = Object.freeze({
+    prefix: config.prefix, delayMs: config.delayMs, defaultMessage: config.defaultMessage,
+  });
   client.broadcasts = new Set();
   client.shutdownController = new AbortController();
+  client.campaigns = createCampaignService(client);
   loadCommands(client);
   loadEvents(client);
   return client;

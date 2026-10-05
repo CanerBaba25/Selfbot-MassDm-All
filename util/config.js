@@ -30,7 +30,8 @@ function loadConfig(env = process.env) {
   return Object.freeze({
     token,
     prefix,
-    delayMs: integer(env, 'DM_DELAY_MS', 7000, 1000, 60_000),
+    delayMs: integer(env, 'DM_DELAY_MS', 1000, 1000, 60_000),
+    defaultMessage: env.DEFAULT_MESSAGE ?? '',
     port: integer(env, 'PORT', 3000, 1, 65535),
     host,
   });

@@ -1,17 +1,18 @@
 {
-    "name":  "discord-server-announcements",
-    "version":  "1.0.0",
-    "private":  true,
-    "description":  "Administrator-only Discord server DM announcements with paced delivery.",
-    "main":  "server.js",
-    "scripts":  {
-                    "start":  "node server.js"
-                },
-    "dependencies":  {
-                         "discord.js":  "14.27.0"
-                     },
-    "engines":  {
-                    "node":  "\u003e=22.12.0"
-                },
-    "license":  "MIT"
+  "name": "discord-server-announcements",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Administrator-only Discord server DM announcements with paced delivery.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "discord.js": "14.27.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "MIT"
 }
